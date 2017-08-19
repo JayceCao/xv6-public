@@ -4,40 +4,39 @@
 #include "types.h"
 #endif
 
+/* Put value of the variable port into %edx,
+ * read one byte from the port into %eax, then into variable data */
 static inline uchar
 inb(ushort port)
 {
   uchar data;
-
-  /* put value of the variable port into %edx,
-   * read one byte from the port into %eax, then into variable data */
   asm volatile("in %1,%0" : "=a" (data) : "d" (port));
   return data;
 }
 
+/* "cld", clear the direction flag(DF), "rep", repeat executing the following 
+ * instruction until %ecx becomes zero */
 static inline void
 insl(int port, void *addr, int cnt)
 {
-  /* "cld", clear the direction flag(DF), "rep", repeat executing the following 
-   * instruction until %ecx becomes zero */
   asm volatile("cld; rep insl" :
                "=D" (addr), "=c" (cnt) :
                "d" (port), "0" (addr), "1" (cnt) :
                "memory", "cc");
 }
 
+/* Put value of data into %eax, then put the port. The port number put into %edx.
+ * the size of data is one byte*/
 static inline void
 outb(ushort port, uchar data)
 {
-  /* put value of data into %eax, then put the port. The port number put into %edx.
-   * the size of data is one byte*/
   asm volatile("out %0,%1" : : "a" (data), "d" (port));
 }
 
+/* The same as above, while the size of data is one word */
 static inline void
 outw(ushort port, ushort data)
 {
-  /* the same as above, while the size of data is one word */
   asm volatile("out %0,%1" : : "a" (data), "d" (port));
 }
 
@@ -50,20 +49,20 @@ outsl(int port, const void *addr, int cnt)
                "cc");
 }
 
+/* Put one byte of the string in %eax into address addr */
 static inline void
 stosb(void *addr, int data, int cnt)
 {
-  /* put one byte of the string in %eax into address addr */
   asm volatile("cld; rep stosb" :
                "=D" (addr), "=c" (cnt) :
                "0" (addr), "1" (cnt), "a" (data) :
                "memory", "cc");
 }
 
+/* The same as above, while four bytes of %eax */
 static inline void
 stosl(void *addr, int data, int cnt)
 {
-  /* the same as above, while four bytes of %eax */
   asm volatile("cld; rep stosl" :
                "=D" (addr), "=c" (cnt) :
                "0" (addr), "1" (cnt), "a" (data) :
@@ -72,7 +71,7 @@ stosl(void *addr, int data, int cnt)
 
 struct segdesc;
 
-/* loads the values in the source operand into the global descriptor table register. */
+/* Loads the values in the source operand into the global descriptor table register. */
 static inline void
 lgdt(struct segdesc *p, int size)
 {
@@ -87,7 +86,7 @@ lgdt(struct segdesc *p, int size)
 
 struct gatedesc;
 
-/* loads the values in the source operand into the global interrupt descriptor register */
+/* Loads the values in the source operand into the global interrupt descriptor register */
 static inline void
 lidt(struct gatedesc *p, int size)
 {
