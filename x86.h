@@ -1,10 +1,16 @@
 // Routines to let C code use special x86 instructions.
 
+#ifndef _DEFS_H
+#include "types.h"
+#endif
+
 static inline uchar
 inb(ushort port)
 {
   uchar data;
 
+  /* put value of the variable port into %edx,
+   * read one byte from the port into %eax, then into variable data */
   asm volatile("in %1,%0" : "=a" (data) : "d" (port));
   return data;
 }
@@ -12,6 +18,8 @@ inb(ushort port)
 static inline void
 insl(int port, void *addr, int cnt)
 {
+  /* "cld", clear the direction flag(DF), "rep", repeat executing the following 
+   * instruction until %ecx becomes zero */
   asm volatile("cld; rep insl" :
                "=D" (addr), "=c" (cnt) :
                "d" (port), "0" (addr), "1" (cnt) :
@@ -21,12 +29,15 @@ insl(int port, void *addr, int cnt)
 static inline void
 outb(ushort port, uchar data)
 {
+  /* put value of data into %eax, then put the port. The port number put into %edx.
+   * the size of data is one byte*/
   asm volatile("out %0,%1" : : "a" (data), "d" (port));
 }
 
 static inline void
 outw(ushort port, ushort data)
 {
+  /* the same as above, while the size of data is one word */
   asm volatile("out %0,%1" : : "a" (data), "d" (port));
 }
 
@@ -42,6 +53,7 @@ outsl(int port, const void *addr, int cnt)
 static inline void
 stosb(void *addr, int data, int cnt)
 {
+  /* put one byte of the string in %eax into address addr */
   asm volatile("cld; rep stosb" :
                "=D" (addr), "=c" (cnt) :
                "0" (addr), "1" (cnt), "a" (data) :
@@ -51,6 +63,7 @@ stosb(void *addr, int data, int cnt)
 static inline void
 stosl(void *addr, int data, int cnt)
 {
+  /* the same as above, while four bytes of %eax */
   asm volatile("cld; rep stosl" :
                "=D" (addr), "=c" (cnt) :
                "0" (addr), "1" (cnt), "a" (data) :
@@ -59,6 +72,7 @@ stosl(void *addr, int data, int cnt)
 
 struct segdesc;
 
+/* loads the values in the source operand into the global descriptor table register. */
 static inline void
 lgdt(struct segdesc *p, int size)
 {
@@ -73,6 +87,7 @@ lgdt(struct segdesc *p, int size)
 
 struct gatedesc;
 
+/* loads the values in the source operand into the global interrupt descriptor register */
 static inline void
 lidt(struct gatedesc *p, int size)
 {
@@ -85,12 +100,14 @@ lidt(struct gatedesc *p, int size)
   asm volatile("lidt (%0)" : : "r" (pd));
 }
 
+/* Loads the source operand into the segment selector field of the task register */
 static inline void
 ltr(ushort sel)
 {
   asm volatile("ltr %0" : : "r" (sel));
 }
 
+/* Save the status of eflags into variable eflags */
 static inline uint
 readeflags(void)
 {
@@ -99,24 +116,35 @@ readeflags(void)
   return eflags;
 }
 
+/* Put the value of v into %gs */
 static inline void
 loadgs(ushort v)
 {
   asm volatile("movw %0, %%gs" : : "r" (v));
 }
 
+/* If protected-mode virtual interrupts are not enabled,
+ * CLI clears the IF flag in the EFLAGS register.
+ * No other flags are affected.
+ * Clearing the IF flag causes the processor to ignore maskable external interrupts.
+ * The IF flag and the CLI and STI instruction have no affect on the generation
+ * of exceptions and NMI interrupts */
 static inline void
 cli(void)
 {
   asm volatile("cli");
 }
 
+/* Be opposite to "cli" */
 static inline void
 sti(void)
 {
   asm volatile("sti");
 }
 
+/* "Lock", causes the processor’s LOCK# signal to be asserted
+ * during execution of the accompanying instruction.
+ * Put the value of newval into %eax, then exchange values of addr and %eax. */
 static inline uint
 xchg(volatile uint *addr, uint newval)
 {
@@ -130,6 +158,8 @@ xchg(volatile uint *addr, uint newval)
   return result;
 }
 
+/* Put the value of %cr2 into variable val.
+ * %cr2 contains page fault information. */
 static inline uint
 rcr2(void)
 {
@@ -138,6 +168,7 @@ rcr2(void)
   return val;
 }
 
+/* %cr3 contains page directory information. */
 static inline void
 lcr3(uint val)
 {
